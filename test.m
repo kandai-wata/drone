@@ -1,4 +1,4 @@
-clear
+clear 
 close all
 
 load pop.mat
@@ -63,8 +63,8 @@ B = [ 0     0       0       0;
       0     0       0       1/Iz];
 
 
-Q = diag(10.^pop(i,1:length(X)));
-R = diag(10.^pop(i,length(X)+1:length(X)+length(U)));
+Q = diag(10.^pop(1,1:length(X)));
+R = diag(10.^pop(1,length(X)+1:length(X)+length(U)));
 K = lqr(A, B, Q, R);
 %% start loop
 for j=1:length(Time)

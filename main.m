@@ -20,6 +20,8 @@ pop=zeros(pops,numvar);       % 個体の初期化
 pop(:,1:numvar)=(ones(pops,1)*rng).*(rand(pops,numvar))+(ones(pops,1)*bound(:,1)'); % 個体の生成
 
 %% Test Each Generation
+h=waitbar(0,'Name','Genetic Algorithm','CreateCancelBtn');
+tic;
 for it=1:maxgen
     fpop=sim_drone(pop);    % 適応度の計算
     [cs,inds]=max(fpop);    % エリート　cs:最大値  inds:順番
@@ -39,5 +41,8 @@ for it=1:maxgen
     % 突然変異
     pop=mutate(child,mutatep,bound,rng);
     pop(1,:)=bchrom;
+    elapsed_time=toc;
+    left_time = elapsed_time/it*maxgen - elapsed_time; 
+    waitbar(it/maxgen,h,sprintf('Time Left %03i [min] 2i [sec]',left_time/60, rem(left_time,60)));
     save pop.mat pop
 end

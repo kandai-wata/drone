@@ -62,8 +62,8 @@ drone = Drone(m, Ix, Iy, Iz, armlen, g, dt);
   pops = size(pop,1);
   f=zeros(pops,1);
   for i=1:pops
-    Q = diag(pop(i,1:length(X)));
-    R = diag(pop(i,length(X)+1:length(X)+length(U)));
+    Q = diag(10.^pop(i,1:length(X)));
+    R = diag(10.^pop(i,length(X)+1:length(X)+length(U)));
     K = lqr(A, B, Q, R);
     success=0;
     %% start loop
