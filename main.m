@@ -4,10 +4,18 @@
 % Lisense belongs to
 % Takahashi Lab @ Keio University
 
-calc_data = input('calc data?');
-show_fig = input('show figures?');
-show_anim = input('show animation?');
-save_data = input('save data?');
+disp('show figure?')
+disp('  (1) Yes');
+disp('  (2) No');
+show_fig = input('');
+disp('show animation data?')
+disp('  (1) Yes');
+disp('  (2) No');
+show_anim = input('');
+disp('save data?')
+disp('  (1) Yes');
+disp('  (2) No');
+save_data = input('');
 
 %%  Parameter
 m = 0.475;
@@ -38,7 +46,8 @@ PWM_store = zeros(length(Time), length(PWM));
 K = controllerLQR(m, Ix, Iy, Iz, g);
 freq=50;
 lpf = LowPassFilter(dt, freq);
-% kf = KalmanFilter();
+
+kf = KalmanFilter(dt);
 
 % Drone
 drone = Drone(m, Ix, Iy, Iz, armlen, g, dt);
@@ -74,28 +83,36 @@ for i=1:length(Time)
   X = X + N';
 
   % Estimate
-  X_filtered = kalman(X, dt);
+  X_filtered = kf.update([X(1:3); X(7:12)]);
 
   % save values
   X_store(i, :) = X_filtered';
   U_store(i, :) = U';
   PWM_store(i, :) = PWM';
 end
+
 %% Figures
-figure
-subplot(2,2,1);
-  plot3(X_store(:,1), X_store(:,2), X_store(:,3) ); grid on; hold on;
-  xlabel('x[m]'); ylabel('y[m]'); zlabel('z[m]');
-subplot(2,2,2);
-  plot(Time, X_store(:,7:9)); grid on; legend('phi','theta','psi');
-subplot(2,2,3);
-  plot(Time, U_store(:,1)); grid on;
-  ylabel('thrust[N]'); ylim([0 6]);
-subplot(2,2,4);
-  plot(Time, U_store(:,2:4));grid on; legend('\it{tx}','ty','tz');
+if show_fig==1
+  figure
+  subplot(2,2,1);
+    plot3(X_store(:,1), X_store(:,2), X_store(:,3) ); grid on; hold on;
+    % plot(Time, X_store(:,1:3)); grid on; legend('x','y','z');
+    xlabel('x[m]'); ylabel('y[m]'); zlabel('z[m]');
+  subplot(2,2,2);
+    plot(Time, X_store(:,7:9)); grid on; legend('phi','theta','psi');
+  subplot(2,2,3);
+    plot(Time, U_store(:,1)); grid on;
+    ylabel('thrust[N]'); ylim([0 6]);
+  subplot(2,2,4);
+    plot(Time, U_store(:,2:4));grid on; legend('\it{tx}','ty','tz');
+end
 
 %% Animation
-start=1;
-animate(Time,  dt, X_store, U_store, PWM_store, armlen, start);
+if show_anim==1
+  start=1;
+  animate(Time,  dt, X_store, U_store, PWM_store, armlen, start);
+end
 
 %% Save Values
+if save_data==1
+end
