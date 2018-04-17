@@ -79,7 +79,7 @@ drone = Drone(m, Ix, Iy, Iz, armlen, g, dt);
       % This is the actual torque being produced
       U = drone.pwm2U(PWM);
       % Add Noise
-      N = 5*rand(4,1);
+      N = [0.05*rand(1,1); 0.01*rand(3,1)];
       U = U + N;
 
       % Simulate in nonlinearDynamics
