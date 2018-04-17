@@ -4,115 +4,40 @@
 % Lisense belongs to
 % Takahashi Lab @ Keio University
 
-disp('show figure?')
-disp('  (1) Yes');
-disp('  (2) No');
-show_fig = input('');
-disp('show animation data?')
-disp('  (1) Yes');
-disp('  (2) No');
-show_anim = input('');
-disp('save data?')
-disp('  (1) Yes');
-disp('  (2) No');
-save_data = input('');
+dimX = 12;
+dimU = 4;
+% Genetic Algorithm Parameters
+numvar = dimX + dimU;         % No. of Parameters for Controller Gain K
+pops=30;                      % 個体数
+maxgen=150;                   % 世代数
+crossp=0.8;                   % 交叉確率
+mutatep=0.35;                 % 突然変異確率
+absolute_max = 2;             % パラメータの最大値（今回は10^(var)の変数varの最大値)
+bound=absolute_max*ones(numvar, 2); bound(:,1)=-absolute_max;
+rng=(bound(:,2)-bound(:,1))'; % 変数の範囲
+pop=zeros(pops,numvar);       % 個体の初期化
+% randomly create betw. 0 ~ bound;     + % center to 0 (-bound ~ bound)
+pop(:,1:numvar)=(ones(pops,1)*rng).*(rand(pops,numvar))+(ones(pops,1)*bound(:,1)'); % 個体の生成
 
-%%  Parameter
-m = 0.475;
-armlen=0.125;
-Ix = 2.7*10^(-3);
-Iy = 2.9*10^(-3);
-Iz = 5.3*10^(-3);
-g=9.81;
-% Simulation Parameter
-dt = 1/400;
-t_start=0;
-t_end=5;
-Time = (t_start:dt:t_end)';
-
-% Initial Condition
-X = zeros(12, 1);
-Xref = [1 1 1]'';
-U = [0 0 0 0]';
-PWM = zeros(4,1);
-U_hover=U;
-
-% Place to be saved
-X_store = zeros(length(Time), length(X));
-U_store = zeros(length(Time), length(U));
-PWM_store = zeros(length(Time), length(PWM));
-
-% Controller
-K = controllerLQR(m, Ix, Iy, Iz, g);
-freq=50;
-lpf = LowPassFilter(dt, freq);
-
-kf = KalmanFilter(dt);
-
-% Drone
-drone = Drone(m, Ix, Iy, Iz, armlen, g, dt);
-
-%% start loop
-for i=1:length(Time)
-  % Feedback Control
-  Xerr = [X(1)-Xref(1); X(2)-Xref(2); X(3)-Xref(3); X(4:12)];
-  U_ref = -K*Xerr + U_hover;
-  % Convert ForceTorques to PWM
-  PWM_ref = drone.U2PWM(U_ref);
-  % filter using 1st Order Lag
-  PWM = lpf.update(PWM_ref);
-  % Convert Back to Force from PWM
-  % This is the actual torque being produced
-  U = drone.pwm2U(PWM);
-  % Add Noise
-  N = 5*rand(4,1);
-  U = U + N;
-
-  % Simulate in nonlinearDynamics
-  dX1 = drone.nonlinearDynamics(X, U)*dt;
-  dX2 = drone.nonlinearDynamics(X+dX1/2, U)*dt;
-  dX3 = drone.nonlinearDynamics(X+dX2/2, U)*dt;
-  dX4 = drone.nonlinearDynamics(X+dX3, U)*dt;
-  X = X+(dX1+2*dX2+2*dX3+dX4)/6;
-  if X(3)<0
-    X(6)=-X(6);   % If it goes lower than the ground, bounce it back
-  end
-
-  % Add Noise
-  N = [0.05*rand(1,3) 0.1*rand(1,3) 0.0873*rand(1,3) 0.0873*rand(1,3)];
-  X = X + N';
-
-  % Estimate
-  X_filtered = kf.update([X(1:3); X(7:12)]);
-
-  % save values
-  X_store(i, :) = X_filtered';
-  U_store(i, :) = U';
-  PWM_store(i, :) = PWM';
-end
-
-%% Figures
-if show_fig==1
-  figure
-  subplot(2,2,1);
-    plot3(X_store(:,1), X_store(:,2), X_store(:,3) ); grid on; hold on;
-    % plot(Time, X_store(:,1:3)); grid on; legend('x','y','z');
-    xlabel('x[m]'); ylabel('y[m]'); zlabel('z[m]');
-  subplot(2,2,2);
-    plot(Time, X_store(:,7:9)); grid on; legend('phi','theta','psi');
-  subplot(2,2,3);
-    plot(Time, U_store(:,1)); grid on;
-    ylabel('thrust[N]'); ylim([0 6]);
-  subplot(2,2,4);
-    plot(Time, U_store(:,2:4));grid on; legend('\it{tx}','ty','tz');
-end
-
-%% Animation
-if show_anim==1
-  start=1;
-  animate(Time,  dt, X_store, U_store, PWM_store, armlen, start);
-end
-
-%% Save Values
-if save_data==1
+%% Test Each Generation
+for it=1:maxgen
+    fpop=sim_drone(pop);    % 適応度の計算
+    [cs,inds]=max(fpop);    % エリート　cs:最大値  inds:順番
+    bchrom=pop(inds,:);     % エリートの値の格納
+    % 選択
+    toursize=5;
+    players=ceil(pops*rand(pops,toursize)); % 適応度の組み合わせ
+    scores=fpop(players);
+    [a,m]=max(scores');
+    pind=zeros(1,pops);
+    for i=1:pops
+        pind(i)=players(i,m(i));
+        parent(i,:)=pop(pind(i),:);
+    end
+    % 交叉
+    child=cross(parent,crossp);
+    % 突然変異
+    pop=mutate(child,mutatep,bound,rng);
+    pop(1,:)=bchrom;
+    save pop.mat pop
 end
