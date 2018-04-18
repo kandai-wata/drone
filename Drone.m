@@ -98,6 +98,11 @@ classdef Drone
 
     
     function thrust = pwm2EachThrust(obj, pwm, a, b, c)
+        if pwm<0
+            pwm=0;
+        elseif pwm>100
+            pwm=100;
+        end
       thrust = a*pwm^2 + b*pwm + c;
     end
 
