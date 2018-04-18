@@ -80,7 +80,7 @@ drone = Drone(m, Ix, Iy, Iz, armlen, g, dt);
       U = drone.pwm2U(PWM);
       % Add Noise
       N = [0.05*rand(1,1); 0.01*rand(3,1)];
-      U = U + N;
+      % U = U + N;
 
       % Simulate in nonlinearDynamics
       dX1 = drone.nonlinearDynamics(X, U)*dt;
@@ -94,7 +94,7 @@ drone = Drone(m, Ix, Iy, Iz, armlen, g, dt);
 
       % Add Noise
       N = [0.05*rand(1,3) 0.1*rand(1,3) 0.05*rand(1,3) 0.05*rand(1,3)];
-      X = X + N';
+      % X = X + N';
 
       % Estimate
       X_filtered = kf.update([X(1:3); X(7:12)]);
@@ -103,13 +103,13 @@ drone = Drone(m, Ix, Iy, Iz, armlen, g, dt);
       X_store(j, :) = X';
       U_store(j, :) = U';
       PWM_store(j, :) = PWM';
-      if(X(1)>0.95 && X(1)<1.05 ...
-        && X(2)>0.95 && X(2)<1.05 ...
-        && X(3)>0.95 && X(3)<1.05)
-        success=success+1;
-      end
+%       if(X(1)>0.95 && X(1)<1.05 ...
+%         && X(2)>0.95 && X(2)<1.05 ...
+%         && X(3)>0.95 && X(3)<1.05)
+%         success=success+1;
+%       end
     end
 
-    f(i,1) = success;
+    f(i,1) = -sum(abs(Xerr));
   end
 end

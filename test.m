@@ -1,7 +1,5 @@
-clear 
 close all
-
-load pop.mat
+% load pop.mat
 
 %%  Parameter
 m = 0.475;
@@ -13,7 +11,7 @@ g=9.81;
 % Simulation Parameter
 dt = 1/400;
 t_start=0;
-t_end=10;
+t_end=30;
 Time = (t_start:dt:t_end)';
 
 % Initial Condition
@@ -62,11 +60,11 @@ B = [ 0     0       0       0;
       0     0       1/Iy    0;
       0     0       0       1/Iz];
 
-
 Q = diag(10.^pop(1,1:length(X)));
 R = diag(10.^pop(1,length(X)+1:length(X)+length(U)));
 K = lqr(A, B, Q, R);
 %% start loop
+success=0;
 for j=1:length(Time)
   % Feedback Control
   Xerr = [X(1)-Xref(1); X(2)-Xref(2); X(3)-Xref(3); X(4:12)];
@@ -80,7 +78,7 @@ for j=1:length(Time)
   U = drone.pwm2U(PWM);
   % Add Noise
   N = [0.05*rand(1,1); 0.01*rand(3,1)];
-  U = U + N;
+  % U = U + N;
 
   % Simulate in nonlinearDynamics
   dX1 = drone.nonlinearDynamics(X, U)*dt;
@@ -94,7 +92,7 @@ for j=1:length(Time)
 
   % Add Noise
   N = [0.05*rand(1,3) 0.1*rand(1,3) 0.05*rand(1,3) 0.05*rand(1,3)];
-  X = X + N';
+  % X = X + N';
 
   % Estimate
   X_filtered = kf.update([X(1:3); X(7:12)]);
@@ -103,6 +101,16 @@ for j=1:length(Time)
   X_store(j, :) = X';
   U_store(j, :) = U';
   PWM_store(j, :) = PWM';
+%   if(X(1)>0.95 && X(1)<1.05 ...
+%           && X(2)>0.95 && X(2)<1.05 ...
+%           && X(3)>0.95 && X(3)<1.05)
+%       success=success+1;
+%   end
+  if(X(7)>-0.05 && X(7)<0.05 ...
+      && X(8)>-0.05 && X(8)<0.05 ...
+      && X(9)>-0.05 && X(9)<0.05)
+    success=success+1;
+  end
 end
 
 %% figure
@@ -121,7 +129,7 @@ subplot(2,2,4);
 
 %% animation
 start=1;
-fastforward=10;
+fastforward=50;
 record=false;
 camera_turn=false;
 camera_yaw=98; camera_ele=30; % camera angle

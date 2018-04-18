@@ -21,6 +21,7 @@ classdef Drone
       obj.dt = dt;
     end
 
+    
     function dX = nonlinearDynamics(obj, X, U)
       % States
       u=X(4,1);     v=X(5,1);     w=X(6,1);
@@ -30,28 +31,22 @@ classdef Drone
       % Force and Torques
       f = U(1,1);   tx = U(2,1);  ty = U(3,1);  tz = U(4,1);
 
-      % obj
-      m=obj.m;
-      Ix = obj.Ix;
-      Iy = obj.Iy;
-      Iz = obj.Iz;
-      g = obj.g;
-
       % Nonlinear Equation of Motion
       dX=[u;
           v;
           w;
-          f/m*(cos(phi)*sin(th)*cos(psi)+sin(phi)*sin(psi)); % nearly equal to f/m*th (if psi=0)
-          f/m*(cos(phi)*sin(th)*sin(psi)-sin(phi)*cos(psi)); % nearly equal to -f/m*phi
-          f/m*(cos(phi)*cos(th))-g; % nearly equal to Uhat
+          f/obj.m*(cos(phi)*sin(th)*cos(psi)+sin(phi)*sin(psi)); % nearly equal to f/m*th (if psi=0)
+          f/obj.m*(cos(phi)*sin(th)*sin(psi)-sin(phi)*cos(psi)); % nearly equal to -f/m*phi
+          f/obj.m*(cos(phi)*cos(th))-obj.g; % nearly equal to Uhat
           p;
           q;
           r;
-          ((Iy-Iz)*q*r + tx)/Ix;
-          ((Iz-Ix)*p*r + ty)/Iy;
-          ((Ix-Iy)*p*q + tz)/Iz];
+          ((obj.Iy-obj.Iz)*q*r + tx)/obj.Ix;
+          ((obj.Iz-obj.Ix)*p*r + ty)/obj.Iy;
+          ((obj.Ix-obj.Iy)*p*q + tz)/obj.Iz];
     end
 
+    
     function PWM = U2PWM(obj, U)
       % parameters
       Cres = 3.5 * 10^(-2);
@@ -60,7 +55,6 @@ classdef Drone
                       len   -len    -len    len;
                       -len  -len    len     len;
                       Cres  -Cres   Cres    -Cres];
-
       U2EachThrust = inv(EachThrust2U);
       each_thrusts = U2EachThrust*U;
       PWM = zeros(4,1);
@@ -70,6 +64,7 @@ classdef Drone
       PWM(4,1) = obj.eachThrust2Pwm(each_thrusts(4), 0.00013478, 0.0073295, 0.11698);
     end
 
+    
     function pwm = eachThrust2Pwm(obj, thrust, a, b, c)
       if thrust<=(c-b^2/(4*a))
         pwm=0;
@@ -85,6 +80,7 @@ classdef Drone
       end
     end
 
+    
     function U = pwm2U(obj, PWM)
       each_thrust = zeros(4,1);
       each_thrust(1,1) = obj.pwm2EachThrust(PWM(1), 0.0001815, 0.0087242, 0.14425);
@@ -100,6 +96,7 @@ classdef Drone
       U = EachThrust2U*each_thrust;
     end
 
+    
     function thrust = pwm2EachThrust(obj, pwm, a, b, c)
       thrust = a*pwm^2 + b*pwm + c;
     end
