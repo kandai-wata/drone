@@ -1,4 +1,4 @@
-function currFrame = draw_3d_animation(T, X_data, PWMs, fandt, dt, len, record, camera_turn, fastforward, az, el, start)
+function currFrame = draw_3d_animation(T, X_data, PWMs, fandt, dt, len, record, camera_turn, fastforward, az, el, start, bound)
 %%%% switch buttons!
 % record        = Start Recording
 % camera_turn   = Turning Camera! Set angle from below
@@ -12,7 +12,14 @@ currFrame(ceil(length(T)/fastforward)) = struct('cdata',[],'colormap',[]);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                              axis limit                                %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-xyz_min = min(min(X_data(:,1:3)))-2*len; xyz_max=max(max(X_data(:,1:3)))+2*len;
+
+if bound(1)==0 && bound(2)==0
+    xyz_min = min(min(X_data(:,1:3)))-2*len; 
+    xyz_max=max(max(X_data(:,1:3)))+2*len;
+else
+    xyz_min=bound(1,1);
+    xyz_max=bound(1,2);
+end
 % xyz_min = -0.5; xyz_max=0.5;
 t_end = T(end);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -79,7 +86,7 @@ for i=start/(dt*fastforward):length(T)/fastforward
     bottomRightTextString = sprintf('pwm = %0.1f', pwm(3));
     % prepare text
     scale = xyz_max-xyz_min;
-    textSize = scale/len;
+    textSize = 16;
     scale = scale/4;
     % show text
     topLeftText     = topLeftMotor + scale*topLeft;
