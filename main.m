@@ -27,7 +27,7 @@ g=9.81;
 % Simulation Parameter
 dt = 1/400;
 t_start=0;
-t_end=5;
+t_end=20;
 Time = (t_start:dt:t_end)';
 
 % Initial Condition
@@ -35,7 +35,7 @@ X = zeros(12, 1);
 Xref = [1 1 1]'';
 U = [0 0 0 0]';
 PWM = zeros(4,1);
-U_hover=U;
+U_hover=[m*g 0 0 0]';
 
 % Place to be saved
 X_store = zeros(length(Time), length(X));
@@ -56,6 +56,9 @@ drone = Drone(m, Ix, Iy, Iz, armlen, g, dt);
 for i=1:length(Time)
   % Feedback Control
   Xerr = [X(1)-Xref(1); X(2)-Xref(2); X(3)-Xref(3); X(4:12)];
+
+  U = -K*Xerr + U_hover; 
+  %{
   U_ref = -K*Xerr + U_hover;
   % Convert ForceTorques to PWM
   PWM_ref = drone.U2PWM(U_ref);
@@ -67,7 +70,8 @@ for i=1:length(Time)
   % Add Noise
   N = 5*rand(4,1);
   U = U + N;
-
+  %}
+  
   % Simulate in nonlinearDynamics
   dX1 = drone.nonlinearDynamics(X, U)*dt;
   dX2 = drone.nonlinearDynamics(X+dX1/2, U)*dt;
@@ -80,7 +84,7 @@ for i=1:length(Time)
 
   % Add Noise
   N = [0.05*rand(1,3) 0.1*rand(1,3) 0.0873*rand(1,3) 0.0873*rand(1,3)];
-  X = X + N';
+  % X = X + N';
 
   % Estimate
   X_filtered = kf.update([X(1:3); X(7:12)]);
@@ -109,8 +113,22 @@ end
 
 %% Animation
 if show_anim==1
-  start=1;
-  animate(Time,  dt, X_store, U_store, PWM_store, armlen, start);
+    start=1;
+    fastforward=10;
+    record=false;
+    camera_turn=false;
+    camera_yaw=98; camera_ele=30; % camera angle
+    Frames=draw_3d_animation(Time, X_store, U_store, PWM_store, dt, armlen, record, camera_turn, fastforward, camera_yaw, camera_ele, start);
+    
+    if record==true
+        vidObj = VideoWriter('ActualAnimation');
+        open(vidObj)
+        for i=1:length(T)/fastforward
+            t=fastforward*i;
+            writeVideo( vidObj, Frames(t) );
+        end
+        close( vidObj);
+    end
 end
 
 %% Save Values
