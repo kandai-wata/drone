@@ -10,9 +10,9 @@ disp('Simulation Start')
 dimX = 12;
 dimU = 4;
 % Genetic Algorithm Parameters
-numvar = dimX + dimU;         % No. of Parameters for Controller Gain K
+numvar = 11;                  % No. of Parameters for Controller Gain K
 pops=30;                      % 個体数
-maxgen=200;                   % 世代数
+maxgen=100;                   % 世代数
 crossp=0.8;                   % 交叉確�?
 mutatep=0.35;                 % 突然変異確�?
 absolute_max = 2;             % パラメータの�?��値?�今回は10^(var)の変数varの�?��値)
@@ -45,17 +45,22 @@ for it=1:maxgen
     pop(1,:)=bchrom;
     elapsed_time=toc;
     left_time = elapsed_time/it*maxgen - elapsed_time; 
+    disp(fpop');
     disp(sprintf('Time Left %0.0f [min]',left_time/60));
     disp(sprintf('Currently %0.1f Percent', it/maxgen*100));
+    disp(sprintf('Max Value: %0.5f', cs));
     save pop.mat pop fpop
 end
 
 %%
 content = strcat(message, sprintf('   Time taken %0.0f [min] ', elapsed_time/60));
 sendmail('kandai@keio.jp', 'Simulation Ended', content );
-    Q = diag(10.^pop(1,1:length(X)));
-    R = diag(10.^pop(1,length(X)+1:length(X)+length(U)));
-    K = lqr(A, B, Q, R);
-    disp(Q);
-    disp(R);
-    disp(K);
+%     Q = diag(10.^pop(1,1:length(X)));
+%     R = diag(10.^pop(1,length(X)+1:length(X)+length(U)));
+Q = diag(10.^[pop(i,1) pop(i,1) pop(i,2) pop(i,3) pop(i,3) pop(i,4) ...
+    pop(i,5) pop(i,5) pop(i,6) pop(i,7) pop(i,7) pop(i,8)]);
+R = diag(10.^[pop(i,9) pop(i,10) pop(i,10) pop(i,11)]);
+K = lqr(A, B, Q, R);
+disp(Q);
+disp(R);
+disp(K);

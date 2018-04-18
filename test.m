@@ -16,10 +16,10 @@ Time = (t_start:dt:t_end)';
 
 % Initial Condition
 X = zeros(12, 1);
-Xref = [1 1 1]'';
+Xref = [0 0 1]'';
 U = [0 0 0 0]';
 PWM = zeros(4,1);
-U_hover=U;
+U_hover=[m*g 0 0 0]';
 
 % Place to be saved
 X_store = zeros(length(Time), length(X));
@@ -28,7 +28,7 @@ PWM_store = zeros(length(Time), length(PWM));
 
 % Filter
 freq=50;
-lpf = LowPassFilter(dt, freq);
+lpf = LowPassFilter(PWM, dt, freq);
 kf = KalmanFilter(dt);
 
 % Drone
@@ -67,18 +67,15 @@ K = lqr(A, B, Q, R);
 success=0;
 for j=1:length(Time)
   % Feedback Control
-  Xerr = [X(1)-Xref(1); X(2)-Xref(2); X(3)-Xref(3); X(4:12)];
-  U_ref = -K*Xerr + U_hover;
+  Xerr = [X(1)-Xref(1); X(2)-Xref(2); X(3)-Xref(3); X(4:12)]
+  U_ref = -K*Xerr + U_hover
   % Convert ForceTorques to PWM
-  PWM_ref = drone.U2PWM(U_ref);
+  PWM_ref = drone.U2PWM(U_ref)
   % filter using 1st Order Lag
-  PWM = lpf.update(PWM_ref);
+  PWM = lpf.update(PWM_ref) + wgn(4,1,5/2) % add noise
   % Convert Back to Force from PWM
   % This is the actual torque being produced
-  U = drone.pwm2U(PWM);
-  % Add Noise
-  N = [0.05*rand(1,1); 0.01*rand(3,1)];
-  % U = U + N;
+  U = drone.pwm2U(PWM)
 
   % Simulate in nonlinearDynamics
   dX1 = drone.nonlinearDynamics(X, U)*dt;
@@ -86,13 +83,13 @@ for j=1:length(Time)
   dX3 = drone.nonlinearDynamics(X+dX2/2, U)*dt;
   dX4 = drone.nonlinearDynamics(X+dX3, U)*dt;
   X = X+(dX1+2*dX2+2*dX3+dX4)/6;
-  if X(3)<0
-    X(6)=-X(6);   % If it goes lower than the ground, bounce it back
-  end
+%   if X(3)<0
+%     X(6)=-X(6);   % If it goes lower than the ground, bounce it back
+%   end
 
   % Add Noise
-  N = [0.05*rand(1,3) 0.1*rand(1,3) 0.05*rand(1,3) 0.05*rand(1,3)];
-  % X = X + N';
+  N = [wgn(1,3,0.03) wgn(1,3,0.01) wgn(1,3,0.03) wgn(1,3,0.03)];
+  X = X + N'; % add noise
 
   % Estimate
   X_filtered = kf.update([X(1:3); X(7:12)]);
@@ -101,24 +98,14 @@ for j=1:length(Time)
   X_store(j, :) = X';
   U_store(j, :) = U';
   PWM_store(j, :) = PWM';
-%   if(X(1)>0.95 && X(1)<1.05 ...
-%           && X(2)>0.95 && X(2)<1.05 ...
-%           && X(3)>0.95 && X(3)<1.05)
-%       success=success+1;
-%   end
-  if(X(7)>-0.05 && X(7)<0.05 ...
-      && X(8)>-0.05 && X(8)<0.05 ...
-      && X(9)>-0.05 && X(9)<0.05)
-    success=success+1;
-  end
+  pause
 end
 
 %% figure
 figure
 subplot(2,2,1);
-    plot3(X_store(:,1), X_store(:,2), X_store(:,3) ); grid on; hold on;
-    % plot(Time, X_store(:,1:3)); grid on; legend('x','y','z');
-    xlabel('x[m]'); ylabel('y[m]'); zlabel('z[m]');
+    % plot3(X_store(:,1), X_store(:,2), X_store(:,3) ); grid on; hold on; xlabel('x[m]'); ylabel('y[m]'); zlabel('z[m]');
+    plot(Time, X_store(:,1:3)); grid on; legend('x','y','z');
 subplot(2,2,2);
     plot(Time, X_store(:,7:9)); grid on; legend('phi','theta','psi');
 subplot(2,2,3);
@@ -130,15 +117,21 @@ subplot(2,2,4);
 %% animation
 start=1;
 fastforward=50;
-record=false;
+record=true;
 camera_turn=false;
-camera_yaw=98; camera_ele=30; % camera angle
-Frames=draw_3d_animation(Time, X_store, U_store, PWM_store, dt, armlen, record, camera_turn, fastforward, camera_yaw, camera_ele, start);
+camera_yaw=98; camera_ele=30; % camera anglec
+% bnd = [-0.1 1.2];
+bnd=[0 0];
+Frames=draw_3d_animation(Time, X_store, U_store, PWM_store, dt, armlen, record, camera_turn, fastforward, camera_yaw, camera_ele, start, bnd);
 
+%%
 if record==true
-    vidObj = VideoWriter('ActualAnimation');
+    date=datetime;
+    date_string = sprintf("[%i%i%i_%i%i] ", date.Year, date.Month, date.Day, date.Hour, date.Minute);
+    file_name = date_string + message(find(~isspace(message)));
+    vidObj = VideoWriter(char(file_name));
     open(vidObj)
-    for i=1:length(T)/fastforward
+    for i=1:length(Time)/fastforward
         t=fastforward*i;
         writeVideo( vidObj, Frames(t) );
     end
