@@ -9,7 +9,7 @@ g=9.81;
 % Simulation Parameter
 dt = 1/400;
 t_start=0;
-t_end=10;
+t_end=15;
 Time = (t_start:dt:t_end)';
 
 % Initial Condition
@@ -17,7 +17,7 @@ X = zeros(12, 1);
 Xref = [1 1 1]'';
 U = [0 0 0 0]';
 PWM = zeros(4,1);
-U_hover=U;
+U_hover=[m*g 0 0 0]';
 
 % Place to be saved
 X_store = zeros(length(Time), length(X));

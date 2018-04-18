@@ -3,6 +3,8 @@
 % created by Kandai Watanabe
 % Lisense belongs to
 % Takahashi Lab @ Keio University
+disp('What Change have you made?');
+message = input('');
 
 dimX = 12;
 dimU = 4;
@@ -20,7 +22,6 @@ pop=zeros(pops,numvar);       % 個体の初期化
 pop(:,1:numvar)=(ones(pops,1)*rng).*(rand(pops,numvar))+(ones(pops,1)*bound(:,1)'); % 個体の生成
 
 %% Test Each Generation
-h=waitbar(0,'Name','Genetic Algorithm','CreateCancelBtn');
 tic;
 for it=1:maxgen
     fpop=sim_drone(pop);    % 適応度の計算
@@ -46,3 +47,9 @@ for it=1:maxgen
     waitbar(it/maxgen,h,sprintf('Time Left %03i [min] 2i [sec]',left_time/60, rem(left_time,60)));
     save pop.mat pop
 end
+
+%%
+content = strcat(message, sprintf('   Time taken %0.0f [min] ', elapsed_time/60));
+sendmail('kandai@keio.jp', 'Simulation Ended', content );
+
+

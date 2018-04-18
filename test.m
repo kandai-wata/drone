@@ -105,4 +105,34 @@ for j=1:length(Time)
   PWM_store(j, :) = PWM';
 end
 
-animate(Time, dt, X_store, U_store, PWM_store, armlen, 1);
+%% figure
+figure
+subplot(2,2,1);
+    plot3(X_store(:,1), X_store(:,2), X_store(:,3) ); grid on; hold on;
+    % plot(Time, X_store(:,1:3)); grid on; legend('x','y','z');
+    xlabel('x[m]'); ylabel('y[m]'); zlabel('z[m]');
+subplot(2,2,2);
+    plot(Time, X_store(:,7:9)); grid on; legend('phi','theta','psi');
+subplot(2,2,3);
+    plot(Time, U_store(:,1)); grid on;
+    ylabel('thrust[N]'); ylim([0 6]);
+subplot(2,2,4);
+    plot(Time, U_store(:,2:4));grid on; legend('\it{tx}','ty','tz');
+
+%% animation
+start=1;
+fastforward=10;
+record=false;
+camera_turn=false;
+camera_yaw=98; camera_ele=30; % camera angle
+Frames=draw_3d_animation(Time, X_store, U_store, PWM_store, dt, armlen, record, camera_turn, fastforward, camera_yaw, camera_ele, start);
+
+if record==true
+    vidObj = VideoWriter('ActualAnimation');
+    open(vidObj)
+    for i=1:length(T)/fastforward
+        t=fastforward*i;
+        writeVideo( vidObj, Frames(t) );
+    end
+    close( vidObj);
+end
