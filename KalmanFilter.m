@@ -1,4 +1,4 @@
-classdef KalmanFilter
+classdef KalmanFilter < handle
   properties
     A;
     % B;

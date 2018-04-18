@@ -1,21 +1,18 @@
-classdef LowPassFilter
+classdef LowPassFilter < handle
   properties
     last;
-    dt;
-    freq;
+    alpha;
   end
 
   methods
-    function obj = LowPassFilter(dt, freq)
-      obj.dt = dt;
-      obj.freq = freq;
-      obj.last = 0;
+    function obj = LowPassFilter(init, dt, freq)
+      obj.alpha = dt / (1/freq + dt);
+      obj.last  = init;
     end
 
     function next = update(obj, curr)
-      T = 1/obj.freq;
-      alpha = obj.dt / (T + obj.dt);
-      next = alpha*curr + (1-alpha)*obj.last;
+        obj.last = (1-obj.alpha)*obj.last + obj.alpha*curr;
+        next= obj.last;
     end
   end
 end
