@@ -11,7 +11,7 @@ g=9.81;
 % Simulation Parameter
 dt = 1/400;
 t_start=0;
-t_end=30;
+t_end=10;
 Time = (t_start:dt:t_end)';
 
 % Initial Condition
@@ -60,22 +60,25 @@ B = [ 0     0       0       0;
       0     0       1/Iy    0;
       0     0       0       1/Iz];
 
-Q = diag(10.^pop(1,1:length(X)));
-R = diag(10.^pop(1,length(X)+1:length(X)+length(U)));
+% Q = diag(10.^pop(1,1:length(X)));
+% R = diag(10.^pop(1,length(X)+1:length(X)+length(U)));
+Q = diag(10.^[pop(i,1) pop(i,1) pop(i,2) pop(i,3) pop(i,3) pop(i,4) ...
+    pop(i,5) pop(i,5) pop(i,6) pop(i,7) pop(i,7) pop(i,8)]);
+R = diag(10.^[pop(i,9) pop(i,10) pop(i,10) pop(i,11)]);
 K = lqr(A, B, Q, R);
 %% start loop
 success=0;
 for j=1:length(Time)
   % Feedback Control
-  Xerr = [X(1)-Xref(1); X(2)-Xref(2); X(3)-Xref(3); X(4:12)]
-  U_ref = -K*Xerr + U_hover
+  Xerr = [X(1)-Xref(1); X(2)-Xref(2); X(3)-Xref(3); X(4:12)];
+  U_ref = -K*Xerr + U_hover;
   % Convert ForceTorques to PWM
-  PWM_ref = drone.U2PWM(U_ref)
+  PWM_ref = drone.U2PWM(U_ref);
   % filter using 1st Order Lag
-  PWM = lpf.update(PWM_ref) + wgn(4,1,5/2) % add noise
+  PWM = lpf.update(PWM_ref) + wgn(4,1,5/2); % add noise
   % Convert Back to Force from PWM
   % This is the actual torque being produced
-  U = drone.pwm2U(PWM)
+  U = drone.pwm2U(PWM);
 
   % Simulate in nonlinearDynamics
   dX1 = drone.nonlinearDynamics(X, U)*dt;
@@ -98,7 +101,7 @@ for j=1:length(Time)
   X_store(j, :) = X';
   U_store(j, :) = U';
   PWM_store(j, :) = PWM';
-  pause
+
 end
 
 %% figure
@@ -110,7 +113,7 @@ subplot(2,2,2);
     plot(Time, X_store(:,7:9)); grid on; legend('phi','theta','psi');
 subplot(2,2,3);
     plot(Time, U_store(:,1)); grid on;
-    ylabel('thrust[N]'); ylim([0 6]);
+    ylabel('thrust[N]'); ylim([0 10]);
 subplot(2,2,4);
     plot(Time, U_store(:,2:4));grid on; legend('\it{tx}','ty','tz');
 

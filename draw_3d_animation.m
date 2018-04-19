@@ -35,10 +35,10 @@ maxForce = 4*(a*100^2 + b*100 + c);
 %                                 Main                                   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % figure('units','normalized','outerposition',[0 0 1 1])
-hf = figure(2);
+hf = figure;
 for i=start/(dt*fastforward):length(T)/fastforward
 %%%%%%%%%%%%%%%%%%%% Set data at t, from _datas %%%%%%%%%%%%%%%%%%%%%%%%%%
-    t=fastforward*i;
+    t=round(fastforward*i);
     x = X_data(t,1);
     y = X_data(t,2);
     z = X_data(t,3);

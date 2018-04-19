@@ -38,7 +38,7 @@ classdef KalmanFilter < handle
       rotQ  = 0.01^2;
       obj.Q = diag([transQ transQ transQ transQ transQ transQ ...
                     rotQ rotQ rotQ rotQ rotQ rotQ]); % 12*12
-      obj.R = diag([1^2 1^2 1^2 2^2 2^2 10^2 1^2 1^2 10^2]); % 6*6
+      obj.R = diag([2^2 2^2 2^2 0.2^2 0.2^2 1^2 0.1^2 0.1^2 1^2]); % 6*6
       obj.P = eye(length(obj.A));
       obj.dt = dt;
       obj.Xhat = zeros(length(obj.A), 1);
