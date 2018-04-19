@@ -9,13 +9,13 @@ g=9.81;
 % Simulation Parameter
 dt = 1/400;
 t_start=0;
-t_end=10;
+t_end=15;
 Time = (t_start:dt:t_end)';
 
 % Initial Condition
 X = zeros(12, 1);
-Xref = [0 0 1]'';
-U = zeros(4,1);
+Xref = [1 1 1]'';
+U = [0 0 0 0]';
 PWM = zeros(4,1);
 U_hover=[m*g 0 0 0]';
 
@@ -26,63 +26,70 @@ PWM_store = zeros(length(Time), length(PWM));
 
 % Filter
 freq=50;
-lpf = LowPassFilter(PWM, dt, freq);
+lpf = LowPassFilter(dt, freq);
 kf = KalmanFilter(dt);
+
 
 % Drone
 drone = Drone(m, Ix, Iy, Iz, armlen, g, dt);
-  A = [0   0   0   1   0   0   0   0   0   0   0   0;
-       0   0   0   0   1   0   0   0   0   0   0   0;
-       0   0   0   0   0   1   0   0   0   0   0   0;
-       0   0   0   0   0   0   0   g   0   0   0   0;
-       0   0   0   0   0   0   -g  0   0   0   0   0;
-       0   0   0   0   0   0   0   0   0   0   0   0;
-       0   0   0   0   0   0   0   0   0   1   0   0;
-       0   0   0   0   0   0   0   0   0   0   1   0;
-       0   0   0   0   0   0   0   0   0   0   0   1;
-       0   0   0   0   0   0   0   0   0   0   0   0;
-       0   0   0   0   0   0   0   0   0   0   0   0;
-       0   0   0   0   0   0   0   0   0   0   0   0];
-
-  %    f     tx      ty      tz
-  B = [0     0       0       0;
-       0     0       0       0;
-       0     0       0       0;
-       0     0       0       0;
-       0     0       0       0;
-       1/m   0       0       0;
-       0     0       0       0;
-       0     0       0       0;
-       0     0       0       0;
-       0     1/Ix    0       0;
-       0     0       1/Iy    0;
-       0     0       0       1/Iz];
-
-
   pops = size(pop,1);
   f=zeros(pops,1);
   for i=1:pops
-    X = zeros(12, 1);
-    U = zeros(4,1);
-    Q = diag(10.^[pop(i,1) pop(i,1) pop(i,2) pop(i,3) pop(i,3) pop(i,4) ...
-                  pop(i,5) pop(i,5) pop(i,6) pop(i,7) pop(i,7) pop(i,8)]);
-    R = diag(10.^[pop(i,9) pop(i,10) pop(i,10) pop(i,11)]);
-
-    % Q = diag(10.^pop(i,1:length(X)));
+    Q = diag(10.^pop(i,1:length(X)));
+    R = diag(10.^pop(i,length(X)+1:length(X)+length(U)));
+    % SDRE Weights
+    % [Nonlinear State-Dependent Riccati Equation Control of a Quadrotor UAV](http://orbilu.uni.lu/bitstream/10993/17440/1/Voos_CCAfinal.pdf)
+    % Q = diag([10^(pop(i,1))*th 10^(pop(i,2))*phi 10^(pop(i,3))*phi*th 10^(pop(i,4))*th 10^(pop(i,5))*phi 10^(pop(i,6))*phi*th 10.^pop(i,7:12)]);
     % R = diag(10.^pop(i,length(X)+1:length(X)+length(U)));
-    K = lqr(A, B, Q, R);
     %% start loop
     for j=1:length(Time)
+      psi=X(9);
+      p=X(10); q=X(11); r=X(12);
+      a47=sin(psi); a48=g*cos(psi);
+      a57=-g*cos(psi); a58=sin(psi);
+      a1011=r*(Iy-Iz)/Ix;
+      a1110=r*(Iz-Ix)/Iy;
+      a1210=q*(Ix-Iy)/Iz/2;
+      a1211=p*(Ix-Iy)/Iz/2;
+      A = [0   0   0   1   0   0   0   0   0   0    0   0;
+           0   0   0   1   1   0   0   0   0   0    0   0;
+           0   0   0   0   0   1   0   0   0   0    0   0;
+           0   0   0   0   0   0  a47 a48  0   0    0   0;
+           0   0   0   0   0   0  a57 a58  0   0    0   0;
+           0   0   0   0   0   0   0   0   0   0    0   0;
+           0   0   0   0   0   0   0   0   0   1    0   0;
+           0   0   0   0   0   0   0   0   0   0    1   0;
+           0   0   0   0   0   0   0   0   0   0    0   1;
+           0   0   0   0   0   0   0   0   0   0  a1011 0;
+           0   0   0   0   0   0   0   0   0 a1110  0   0;
+           0   0   0   0   0   0   0   0   0 a1210 a1211 0];
+      %    f     tx      ty      tz
+      B = [0     0       0       0;
+           0     0       0       0;
+           0     0       0       0;
+           0     0       0       0;
+           0     0       0       0;
+           1/m   0       0       0;
+           0     0       0       0;
+           0     0       0       0;
+           0     0       0       0;
+           0     1/Ix    0       0;
+           0     0       1/Iy    0;
+           0     0       0       1/Iz];
+      K = lqr(A, B, Q, R);
       % Feedback Control
       Xerr = [X(1)-Xref(1); X(2)-Xref(2); X(3)-Xref(3); X(4:12)];
       U_ref = -K*Xerr + U_hover;
       % Convert ForceTorques to PWM
       PWM_ref = drone.U2PWM(U_ref);
       % filter using 1st Order Lag
-      PWM = lpf.update(PWM_ref) + wgn(4,1,5/2);
+      PWM = lpf.update(PWM_ref);
       % Convert Back to Force from PWM
       % This is the actual torque being produced
       U = drone.pwm2U(PWM);
+      % Add Noise
+      N = [0.05*rand(1,1); 0.01*rand(3,1)];
+      % U = U + N;
 
       % Simulate in nonlinearDynamics
       dX1 = drone.nonlinearDynamics(X, U)*dt;
@@ -90,10 +97,13 @@ drone = Drone(m, Ix, Iy, Iz, armlen, g, dt);
       dX3 = drone.nonlinearDynamics(X+dX2/2, U)*dt;
       dX4 = drone.nonlinearDynamics(X+dX3, U)*dt;
       X = X+(dX1+2*dX2+2*dX3+dX4)/6;
+      if X(3)<0
+        X(6)=-X(6);   % If it goes lower than the ground, bounce it back
+      end
 
       % Add Noise
-      N = [wgn(1,3,0.03) wgn(1,3,0.01) wgn(1,3,0.03) wgn(1,3,0.03)];
-      X = X + N';
+      N = [0.05*rand(1,3) 0.1*rand(1,3) 0.05*rand(1,3) 0.05*rand(1,3)];
+      % X = X + N';
 
       % Estimate
       X_filtered = kf.update([X(1:3); X(7:12)]);
@@ -108,16 +118,7 @@ drone = Drone(m, Ix, Iy, Iz, armlen, g, dt);
 %         success=success+1;
 %       end
     end
-%     start=1;
-%     fastforward=50;
-%     record=false;
-%     camera_turn=false;
-%     camera_yaw=98; camera_ele=30; % camera anglec
-%     bnd = [-0.1 1.2];
-   %  Frames=draw_3d_animation(Time, X_store, U_store, PWM_store, dt, armlen, record, camera_turn, fastforward, camera_yaw, camera_ele, start, bnd);
-    
-    %error=[Xerr(1:3); Xerr(4:6)]'; disp(error)
-    fi = 1/sum(abs([Xerr(1:3); Xerr(4:6)])); 
-    f(i,1) = fi;
+
+    f(i,1) = -sum(abs(Xerr));
   end
 end
