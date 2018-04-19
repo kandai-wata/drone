@@ -1,4 +1,4 @@
-function currFrame = draw_3d_animation(T, X_data, PWMs, fandt, dt, len, record, camera_turn, fastforward, az, el, start, bound)
+function currFrame = draw_3d_animation(T, X_data, PWMs, fandt, dt, len, record, camera_turn, fastforward, az, el, start, bound, message)
 %%%% switch buttons!
 % record        = Start Recording
 % camera_turn   = Turning Camera! Set angle from below
@@ -7,8 +7,11 @@ function currFrame = draw_3d_animation(T, X_data, PWMs, fandt, dt, len, record, 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                 Camera                                 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-currFrame(ceil(length(T)/fastforward)) = struct('cdata',[],'colormap',[]);
-
+% currFrame(round(length(T)/fastforward)) = struct('cdata',[],'colormap',[]);
+date=datetime;
+file_name = sprintf('[%i%i%i_%i%i]_%s.avi', date.Year, date.Month, date.Day, date.Hour, date.Minute, message(find(~isspace(message))));
+vidObj = VideoWriter(char(file_name));
+open(vidObj)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                              axis limit                                %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -34,11 +37,10 @@ maxForce = 4*(a*100^2 + b*100 + c);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                 Main                                   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% figure('units','normalized','outerposition',[0 0 1 1])
-hf = figure(2);
+figure('units','normalized','outerposition',[0 0 1 1])
 for i=start/(dt*fastforward):length(T)/fastforward
 %%%%%%%%%%%%%%%%%%%% Set data at t, from _datas %%%%%%%%%%%%%%%%%%%%%%%%%%
-    t=fastforward*i;
+    t=round(fastforward*i);
     x = X_data(t,1);
     y = X_data(t,2);
     z = X_data(t,3);
@@ -144,11 +146,12 @@ for i=start/(dt*fastforward):length(T)/fastforward
     % view(az, el);
     %%% Recording
     if record==true
-        currFrame(t) = getframe(gcf);
+        currFrame = getframe(gcf);
+        writeVideo(vidObj, currFrame)
     end
     drawnow;
 end
-
+close(vidObj);
 end
 
 function R = getRotationalMatrix(phi, th, psi)
